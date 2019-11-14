@@ -1,7 +1,7 @@
 """此文件用于整理米仔的照片到相应的folder。
 之前有手动创建过一些folder，用folder前十七位“20131120-20131220”作为目标时间段
-没有手动创建的folder，自动创建，格式使用“20131120-20131220 （1岁零1个月）”
-其他照片或视频，以文件的LastEditedTime 作为标准，将照片转入相应folder内。
+没有手动创建的folder，自动创建，格式使用“.../20141120-20151120 (1岁合集)/20141120-20141220 （1岁1个月）”
+其他照片或视频，以文件的LastModifiedTime 作为标准，将照片转入相应folder内。
 有些单反拍摄的文件，时间可能不对。
 """
 import os
@@ -9,6 +9,7 @@ import re
 import logging
 import time
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from typing import List,Callable,Sequence,TypeVar
 T = TypeVar('T')
 
@@ -127,11 +128,31 @@ class Manage_Mi_Pics():
         Args:
             last_edit_time: dt_object.strftime('%Y-%m-%d_%H:%M:%S')
         Returns:
-            folder_path, folder 格式使用“.../20141120-20151120 (1岁合集)/20141120-20141220 （1岁1个月）”
+            if ok: folder_path, folder 格式使用“.../20141120-20151120 (1岁合集)/20141120-20141220 （1岁1个月）”
+            if last_edit_time is earlier than birth day: return '.../last_modified_time_error'.
         """
         month_frame=self._define_month_frame_for_subfolder(last_edit_time)
         year_frame=self._define_year_frame_for_subfolder(last_edit_time)
-        return r"C:/fake/"+year_frame+os.pathsep+time_frame
+        age_years=None
+        age_months=None
+        if(not str(month_frame).endswith('error')):
+            (age_years,age_months)=self._get_age_year_month(last_edit_time)
+            return r'C:/fake/'+year_frame+' '+r'('+str(age_years)+'岁合集)'+os.sep+month_frame+r' ('+str(age_years)+'岁'+str(age_months)+r'个月)'
+        else:
+            return r'C:/fake/last_modified_time_error'
+
+    def _get_age_year_month(self,last_edit_time:str)->tuple:
+        """
+        Args:
+            last_edit_time: dt_object.strftime('%Y-%m-%d_%H:%M:%S')
+        Returns:
+            return (years of age,months of age),  5岁3个月之类的
+        """
+        datetime1_last_edit_time=datetime.strptime(last_edit_time,'%Y-%m-%d_%H:%M:%S')
+        birth_time=str(self._birth_year).zfill(4)+'-'+str(self._birth_month).zfill(2)+'-'+str(self._birth_day).zfill(2)+'_00:00:01'
+        datetime2_birth=datetime.strptime(birth_time,'%Y-%m-%d_%H:%M:%S')
+        time_diff=relativedelta(datetime1_last_edit_time,datetime2_birth)
+        return (time_diff.years,time_diff.months)
 
     def _define_year_frame_for_subfolder(self,last_edit_time:str)->str:
         """
@@ -139,7 +160,7 @@ class Manage_Mi_Pics():
             last_edit_time: dt_object.strftime('%Y-%m-%d_%H:%M:%S')
         Returns:
             if ok: return year_frame like: '20131120-20141120'. 17 chars totally !
-            if edit time is earlier than birth day: return 'edit-time-error'.
+            if last_edit_time is earlier than birth day: return 'last_modified_time_error'.
         """
         year=last_edit_time.split('-')[0]
         month=last_edit_time.split('-')[1]
@@ -147,7 +168,7 @@ class Manage_Mi_Pics():
         date=year+month+day #e.g.20191022, 20170304...
         if (int(date)<int( (str(self._birth_year)+str(self._birth_month)+str(self._birth_day)) )):
             logging.error('Last edit time is earlier than birth time. Please check.')
-            return 'last_modified-time-error'
+            return 'last_modified_time_error'
         if ( (int(month)*100+int(day)) < (self._birth_month*100+self._birth_day)):
             return str(int(year)-1).zfill(4)+str(self._birth_month).zfill(2)+str(self._birth_day).zfill(2)+'-'+year+str(self._birth_month).zfill(2)+str(self._birth_day).zfill(2)
         else:
@@ -159,14 +180,14 @@ class Manage_Mi_Pics():
             last_edit_time: dt_object.strftime('%Y-%m-%d_%H:%M:%S')
         Returns:
             if ok: return date_frame like: '20131120-20131220'. 17 chars totally !
-            if edit time is earlier than birth day: return 'edit-time-error'.
+            if last_edit_time is earlier than birth day: return 'last_modified_time_error'.
         """
         year=last_edit_time.split('-')[0]
         month=last_edit_time.split('-')[1]
         day=last_edit_time.split('-')[2].split('_')[0]
         date=year+month+day #e.g.20191022, 20170304...
         if (int(date)<int( (str(self._birth_year)+str(self._birth_month)+str(self._birth_day)) )):
-            return 'last_modified-time-error'
+            return 'last_modified_time_error'
         if (int(day)<self._birth_day):
             if month=='01':
                 return str(int(year)-1).zfill(4)+'12'+str(self._birth_day).zfill(2)+'-'+year+month+str(self._birth_day).zfill(2)
