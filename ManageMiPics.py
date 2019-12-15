@@ -7,6 +7,9 @@ import os, re, logging, time
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from typing import List, Callable, Sequence, TypeVar
+from PIL import Image
+from PIL.ExifTags import TAGS
+
 T = TypeVar('T')
 
 def set_up_logging(level: int) -> None:
@@ -107,8 +110,46 @@ class Manage_Mi_Pics:
             shot_time = str(format_match['from_weixin'].group(2))[:-3]
             strftime_shot_time = self._convert_time_stamp_to_time(int(shot_time))
             return strftime_shot_time
+        elif self._get_exif_datetimeoriginal_info(full_file_path):
+            datetimeoriginal=datetime.strptime(self._get_exif_datetimeoriginal_info(full_file_path),'%Y:%m:%d %H:%M:%S')
+            return datetimeoriginal.strftime('%Y-%m-%d_%H:%M:%S')
         else:
             return self._convert_time_stamp_to_time(int(os.path.getmtime(full_file_path)))
+
+    def _get_exif_datetimeoriginal_info(self,full_file_path: str) -> str:
+        """try to get exif info from pictures shot by DSLR,Mi 8,iphone,etc.
+        Args:
+            full_file_path: path and name
+        Returns:
+            return datetimeoriginal ('%Y:%m:%d %H:%M:%S') if it's found. Otherwise return None.
+        """
+        #try:
+        #    ret={}
+        #    i=Image.open(fn)
+        #    info = i._getexif()
+        #    for tag, value in info.items():
+        #        decoded = TAGS.get(tag,tag)
+        #        ret[decoded] = value
+        #    datetimeoriginal=ret['DateTimeOriginal']
+        #    if datetimeoriginal:
+        #        return datetimeoriginal
+        #    else:
+        #        return None
+        #except:
+        #    print ('Error')
+        #    return None
+        ret={}
+        i=Image.open(full_file_path)
+        info = i._getexif()
+        for tag, value in info.items():
+            decoded = TAGS.get(tag,tag)
+            ret[decoded] = value
+        datetimeoriginal=ret['DateTimeOriginal']
+        if datetimeoriginal:
+            return datetimeoriginal
+        else:
+            return None
+
 
     def _convert_time_stamp_to_time(self, time_stamp: int) -> str:
         """convert 10 digits time_stamp to time

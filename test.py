@@ -28,6 +28,13 @@ for tmp_date_test in ['2012-11-20_12:00:01','2013-11-19_12:00:01','2013-11-20_12
 
 print ('start to check get file shot time')
 file_names=['20181025_112644_3040.mp4','1544418560235.jpg','IMG_20180726_092712.jpg','mmexport1455977653935.jpg','VID_20160228_124441.mp4','IMG_1004.JPG']
-full_path_of_a_file='./LICENSE'
+full_path_of_a_file=r'/Users/ziwen/Documents/MyPic/Finish/TestManageMi/null-3fc3e9924e537552.jpg'
 for tmp_file in file_names:
     print(f'{tmp_file}: {mmp._get_last_edit_time(tmp_file,full_path_of_a_file)}' )
+
+
+exif_pics=[r'/Users/ziwen/Documents/MyPic/Finish/TestManageMi/null-3fc3e9924e537552.jpg',r'/Users/ziwen/Documents/MyPic/Finish/TestManageMi/null4e3e9b00d46cb6ac.jpg',r'/Users/ziwen/Documents/MyPic/Finish/TestManageMi/IMG_0005.JPG']
+print ('check exif info:')
+for exif_pic in exif_pics:
+    #print (mmp._get_exif_datetimeoriginal_info(exif_pic))
+    print (mmp._get_last_edit_time('fakename',exif_pic))
