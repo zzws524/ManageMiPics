@@ -54,9 +54,8 @@ class Manage_Mi_Pics:
                     else:
                         logging.error('Failed to find %s' % tmp_path)
                         path_setting_correct_flag = False
-
             else:
-                logging.error('Config folder to be searched and folder to be pasted.')
+                logging.error('No Config : folder to be searched & folder to be pasted.')
                 path_setting_correct_flag = False
             if not path_setting_correct_flag:
                 logging.error('Path config error. Script stops.')
@@ -67,7 +66,7 @@ class Manage_Mi_Pics:
                         full_path_of_one_file = os.path.join(current_folder_path, one_file_name)
                         self.master_list[full_path_of_one_file] = [''] * 5
                         logging.debug('File is %s' % full_path_of_one_file)
-                        last_edit_time = self._convert_time_stamp_to_time(int(os.path.getmtime(full_path_of_one_file)))
+                        last_edit_time = self._get_last_edit_time(one_file_name,full_path_of_one_file)
                         self.master_list[full_path_of_one_file][0] = last_edit_time
                         logging.debug('LastEditTime is %s' % self.master_list[full_path_of_one_file][0])
                         original_folder_path = current_folder_path
@@ -83,14 +82,14 @@ class Manage_Mi_Pics:
                             self.master_list[full_path_of_one_file][4] = 'ignore:file_type'
                             logging.warning('%s is ignored due to its file type.' % full_path_of_one_file)
                         elif destination_folder_path.endswith('error'):
-                            self.master_list[full_path_of_one_file][4] = 'ignore:wrong_edit_time'
+                            self.master_list[full_path_of_one_file][4] = 'ignore:wrong_last_edit_time'
                             logging.warning('%s is ignored due to file edited time is earlier than birth day.' % full_path_of_one_file)
                         elif duplicate_or_unique == 'duplicate':
                             self.master_list[full_path_of_one_file][4] = 'ignore:duplicate'
                             logging.warning('%s is ignored due to duplication.' % full_path_of_one_file)
                         else:
-                            self.master_list[full_path_of_one_file][4] = ''
-                            logging.warning('%s is to be moved...' % full_path_of_one_file)
+                            self.master_list[full_path_of_one_file][4] = 'good_to_go'
+                            logging.info('%s is to be moved...' % full_path_of_one_file)
 
     def _get_last_edit_time(self, file_name: str, full_file_path: str) -> str:
         """get last modified time/shot time from different cameras/sources
@@ -123,31 +122,20 @@ class Manage_Mi_Pics:
         Returns:
             return datetimeoriginal ('%Y:%m:%d %H:%M:%S') if it's found. Otherwise return None.
         """
-        #try:
-        #    ret={}
-        #    i=Image.open(fn)
-        #    info = i._getexif()
-        #    for tag, value in info.items():
-        #        decoded = TAGS.get(tag,tag)
-        #        ret[decoded] = value
-        #    datetimeoriginal=ret['DateTimeOriginal']
-        #    if datetimeoriginal:
-        #        return datetimeoriginal
-        #    else:
-        #        return None
-        #except:
-        #    print ('Error')
-        #    return None
-        ret={}
-        i=Image.open(full_file_path)
-        info = i._getexif()
-        for tag, value in info.items():
-            decoded = TAGS.get(tag,tag)
-            ret[decoded] = value
-        datetimeoriginal=ret['DateTimeOriginal']
-        if datetimeoriginal:
-            return datetimeoriginal
-        else:
+        try:
+            ret={}
+            i=Image.open(full_file_path)
+            info = i._getexif()
+            for tag, value in info.items():
+                decoded = TAGS.get(tag,tag)
+                ret[decoded] = value
+            datetimeoriginal=ret['DateTimeOriginal']
+            if datetimeoriginal:
+                return datetimeoriginal
+            else:
+                return None
+        except:
+            logging.info(f'Failed to get exif of image {full_file_path} ')
             return None
 
 
@@ -236,11 +224,24 @@ class Manage_Mi_Pics:
 
     def _check_if_file_is_already_in_destination(self, file_name: str, last_edit_time_of_source_file: str, des_folder: str) -> str:
         """
+        Args:
+            last_edit_time_of_source_file: it's a str. dt_object.strftime('%Y-%m-%d_%H:%M:%S')
         Returns:
             "unique" if no duplication.
             "duplicate" if source file is already in destination folder.
         """
-        return 'unique'
+        if not os.path.exists(des_folder):
+            return 'unique'
+        else:
+            if file_name in os.listdir(des_folder):
+                full_path_of_des_file = os.path.join(des_folder, file_name)
+                last_edit_time_of_des_file=self._get_last_edit_time(file_name,full_path_of_des_file)
+                if last_edit_time_of_des_file == last_edit_time_of_source_file:
+                    return 'duplicate'
+                else:
+                    return 'unique'
+            else:
+                return 'unique'
 
     def run(self) -> None:
         """Interface of parsing. All parse functions need use this.
