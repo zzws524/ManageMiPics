@@ -3,7 +3,7 @@
 其他照片或视频，以文件的LastModifiedTime 作为标准，将照片转入相应folder内。
 有些单反拍摄的文件，时间可能不对。
 """
-import os, re, logging, time
+import os, re, logging, time,shutil
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from typing import List, Callable, Sequence, TypeVar
@@ -243,7 +243,7 @@ class Manage_Mi_Pics:
             else:
                 return 'unique'
 
-    def view_masterlist(self) -> None:
+    def check_without_running(self) -> None:
         """get self.master_list,print and check the result.
            if everything is ok, then it's ok to execute final_run()
         """
@@ -259,6 +259,24 @@ class Manage_Mi_Pics:
                     f.write(each_value+',')
                 f.write(os.linesep)
 
+    def check_and_run(self) -> None:
+        """execute this whole script
+           self.masterlist={'source_file':[last_edit_time,original_folder,destination_folder,duplication_flag,action]}
+        """
+        self.check_without_running()
+        try:
+            for key_sourcefile,dict_values in self.master_list.items():
+                if dict_values[4] == 'good_to_go':
+                    if not os.path.exists(dict_values[2]):
+                        os.makedirs(dict_values[2])
+                    shutil.copy(key_sourcefile,dict_values[2])
+                    logging.debug(f'{key_sourcefile} is copied')
+        except:
+           logging.error('Failed to copy original file to destination.')
+           logging.error('Maybe authority problem.')
+           os._exit(1)
+
+
 
 if __name__ == '__main__':
     set_up_logging(logging.DEBUG)
@@ -269,4 +287,4 @@ if __name__ == '__main__':
     mmp.type_filter_reg = '.(jpg|mp4|png|mov)$'
     mmp.path_of_folder_to_be_pasted = '/Users/ziwen/Documents/MyPic/Finish_bkp'
     mmp.path_of_folders_to_be_searched = ['/Users/ziwen/Documents/MyPic/Finish']
-    mmp.view_masterlist()
+    mmp.check_and_run()
