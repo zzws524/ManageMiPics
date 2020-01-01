@@ -243,10 +243,21 @@ class Manage_Mi_Pics:
             else:
                 return 'unique'
 
-    def run(self) -> None:
-        """Interface of parsing. All parse functions need use this.
+    def view_masterlist(self) -> None:
+        """get self.master_list,print and check the result.
+           if everything is ok, then it's ok to execute final_run()
         """
-        pass
+        self._parse_master_list()
+        if os.path.exists('result.csv'):
+            os.remove('result.csv')
+        with open ('result.csv','a+') as f:
+            f.write('source_file,last_edit_time,original_folder,destination_folder,duplication_flag,action')
+            f.write(os.linesep)
+            for key_sourcefile,dict_values in self.master_list.items():
+                f.write(key_sourcefile+',')
+                for each_value in dict_values:
+                    f.write(each_value+',')
+                f.write(os.linesep)
 
 
 if __name__ == '__main__':
@@ -258,4 +269,4 @@ if __name__ == '__main__':
     mmp.type_filter_reg = '.(jpg|mp4|png|mov)$'
     mmp.path_of_folder_to_be_pasted = '/Users/ziwen/Documents/MyPic/Finish_bkp'
     mmp.path_of_folders_to_be_searched = ['/Users/ziwen/Documents/MyPic/Finish']
-    mmp._parse_master_list()
+    mmp.view_masterlist()
